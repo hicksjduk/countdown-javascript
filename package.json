@@ -1,0 +1,19 @@
+{
+  "name": "countdown",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "cucumber-js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cucumber/cucumber": "^7.2.1",
+    "assert": "^2.0.0",
+    "jest": "^26.6.3"
+  },
+  "dependencies": {
+    "winston": "^3.3.3"
+  }
+}
