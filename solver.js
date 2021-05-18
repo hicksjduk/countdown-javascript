@@ -75,7 +75,7 @@ function betterChecker(target) {
             return null
         if (diffA != diffB)
             return diffA < diffB ? a : b
-        return a.count <= b.count ? a : b
+        return a.numbers.length <= b.numbers.length ? a : b
     }
 }
 
@@ -88,7 +88,7 @@ const Priority = "LOW HIGH ATOMIC".split(" ").reduce(
 function number(num) {
     return {
         value: num,
-        count: 1,
+        numbers: [num],
         string: `${num}`,
         priority: Priority.ATOMIC
     }
@@ -108,7 +108,7 @@ const Operator = {
 function expression(leftOperand, operator, rightOperand) {
     return {
         value: operator.evaluator(leftOperand.value, rightOperand.value),
-        count: leftOperand.count + rightOperand.count,
+        numbers: [...leftOperand.numbers, ...rightOperand.numbers],
         string: toString(leftOperand, operator, rightOperand),
         priority: operator.priority
     }
