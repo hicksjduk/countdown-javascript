@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "solve": "node index.js",
     "test": "cucumber-js"
   },
   "author": "",

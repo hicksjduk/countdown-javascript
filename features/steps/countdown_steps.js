@@ -1,5 +1,5 @@
 const {When, Then, defineParameterType} = require("@cucumber/cucumber")
-const {solve} = require("../../index.js")
+const solve = require("../../solver.js")
 const assert = require("assert")
 
 defineParameterType({name: "ints", regexp: /\d+(?:\s*,\s*\d+)*/, 

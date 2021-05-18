@@ -1,163 +1,57 @@
-const winston = require("winston")
-winston.add(new winston.transports.Console())
-const log = message => winston.log('info', message)
+const solve = require("./solver")
 
-const Priority = "LOW HIGH ATOMIC".split(" ").reduce(
-    (obj, key, priority) => {
-        obj[key] = priority
-        return obj
-    }, {})
-
-function number(num) {
-    return {
-        value: num,
-        count: 1,
-        string: `${num}`,
-        priority: Priority.ATOMIC
+try {
+    const args = validate(process.argv.slice(2).map(v => v * 1))
+    if (args.length == 7) {
+        solve(...args)
+    } else {
+        solve(...selectRandomNumbers(args[0]))
     }
+} catch (e) {
+    console.log(e.message)
+    process.exit(1)
 }
 
-function operator(symbol, evaluator, priority, commutative) {
-    return { symbol, evaluator, priority, commutative }
-}
-
-const Operator = {
-    ADD: operator("+", (a, b) => a + b, Priority.LOW, true),
-    SUBTRACT: operator("-", (a, b) => a - b, Priority.LOW, false),
-    MULTIPLY: operator("*", (a, b) => a * b, Priority.HIGH, true),
-    DIVIDE: operator("/", (a, b) => a / b, Priority.HIGH, false)
-}
-
-function expression(leftOperand, operator, rightOperand) {
-    return {
-        value: operator.evaluator(leftOperand.value, rightOperand.value),
-        count: leftOperand.count + rightOperand.count,
-        string: toString(leftOperand, operator, rightOperand),
-        priority: operator.priority
+function validate(args) {
+    if (args.findIndex(n => isNaN(n)) != -1)
+        throw new Error("All arguments must be numbers")
+    if (args.length != 1 && args.length != 7)
+        throw new Error("Must specify either one number (the number of large numbers to select) " +
+                        "or seven numbers, of which the first is the target")
+    if (args.length == 1) {
+        if (args[0] < 0 || args[0] > 4)
+            throw new Error("Number of large numbers must be in the range 0 to 4 inclusive")
+    } else {
+        const [target, ...numbers] = args
+        if (target < 100 || target > 999)
+            throw new Error("Target number must be in the range 100 to 999 inclusive")
+        const occurrences = {}
+        numbers.forEach(n => {
+            if (n < 1 || n > 100 || (n > 10 && n % 25))
+                throw new Error("Source numbers must be in the range 1 to 10, or 25, 50, 75 or 100")
+            const occ = (occurrences[n] ?? 0) + 1
+            if (n <= 10 && occ > 2)
+                throw new Error("Small source numbers (<=10) cannot appear more than twice")
+            if (n > 10 && occ > 1)
+                throw new Error("Large source numbers (>10) cannot appear more than once")
+            occurrences[n] = occ
+        })
     }
+    return args
 }
 
-function toString(leftOperand, operator, rightOperand) {
-    const leftInParens = leftOperand.priority < operator.priority
-    const rightInParens = rightOperand.priority < operator.priority ||
-        (rightOperand.priority == operator.priority && !operator.commutative)
-    return [
-        leftInParens ? `(${leftOperand.string})` : `${leftOperand.string}`,
-        operator.symbol,
-        rightInParens ? `(${rightOperand.string})` : `${rightOperand.string}`
-    ].join(" ")
+function selectRandomNumbers(largeCount) {
+    const target = randomInt(100, 1000)
+    const large = [25, 50, 75, 100]
+    const small = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10]
+    const numbers = []
+    while (largeCount--)
+        numbers.push(...large.splice(randomInt(0, large.length), 1))
+    while (numbers.length < 6)
+        numbers.push(...small.splice(randomInt(0, small.length), 1))
+    return [target, ...numbers]
 }
 
-const combinerCreators = [
-    a => b => expression(a, Operator.ADD, b),
-    a => {
-        if (a.value < 3)
-            return null
-        return b => {
-            if (a.value <= b.value || a.value == b.value * 2)
-                return null
-            return expression(a, Operator.SUBTRACT, b)
-        }
-    },
-    a => {
-        if (a.value == 1)
-            return null
-        return b => {
-            if (b.value == 1)
-                return null
-            return expression(a, Operator.MULTIPLY, b)
-        }
-    },
-    a => {
-        if (a.value == 1)
-            return null
-        return b => {
-            if (b.value == 1 || (a.value % b.value) || a.value == b.value ** 2)
-                return null
-            return expression(a, Operator.DIVIDE, b)
-        }
-    }
-]
-
-function combiners(expr) {
-    return combinerCreators.map(cc => cc(expr)).filter(x => x)
+function randomInt(minInclusive, maxExclusive) {
+    return Math.floor(Math.random() * (maxExclusive - minInclusive)) + minInclusive
 }
-
-function* permute(arr) {
-    if (arr.length == 1)
-        yield arr
-    else if (arr.length) {
-        const used = usedChecker(e => e.value)
-        for (let i = 0; i < arr.length; i++) {
-            const value = arr[i]
-            if (!used(value)) {
-                yield [value]
-                const others = arr.slice(0, i).concat(arr.slice(i + 1))
-                for (const perm of permute(others))
-                    yield [value, ...perm]
-            }
-        }
-    }
-}
-
-function usedChecker(idGenerator) {
-    const usedIds = new Set()
-    return value => {
-        const id = idGenerator(value)
-        if (usedIds.has(id))
-            return true
-        usedIds.add(id)
-        return false
-    }
-}
-
-function* expressions(permutation) {
-    if (permutation.length == 1)
-        yield permutation[0]
-    else if (permutation.length) {
-        const used = usedChecker(e => e.value)
-        for (let i = 1; i < permutation.length; i++)
-            for (const left of expressions(permutation.slice(0, i))) {
-                const combs = combiners(left)
-                for (const right of expressions(permutation.slice(i)))
-                    for (const comb of combs) {
-                        const expr = comb(right)
-                        if (expr && !used(expr))
-                            yield expr
-                    }
-            }
-    }
-}
-
-function solve(target, ...numbers) {
-    log('------------------------------')
-    log(`Target: ${target}, numbers: ${numbers.join(", ")}`)
-    const nums = numbers.map(n => number(n))
-    const better = betterChecker(target)
-    let answer = null
-    for (const permutation of permute(nums))
-        for (const expr of expressions(permutation)) {
-            const best = better(answer, expr)
-            if (best !== answer) {
-                log(`${best.string} = ${best.value}`)
-                answer = best
-            }
-        }
-    if (!answer)
-        log("No solution found")
-    log('------------------------------')
-    return answer
-}
-
-function betterChecker(target) {
-    return (a, b) => {
-        const [diffA, diffB] = [a, b].map(x => x ? Math.abs(target - x.value) : 1000)
-        if (Math.min(diffA, diffB) > 10)
-            return null
-        if (diffA != diffB)
-            return diffA < diffB ? a : b
-        return a.count <= b.count ? a : b
-    }
-}
-
-module.exports = { solve }
