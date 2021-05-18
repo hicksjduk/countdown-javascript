@@ -13,13 +13,13 @@ When("I call the solver with target number {int} and numbers {ints}",
     })
 
 Then("a solution is found whose value equals the target number and which uses {int} numbers", 
-    function(count) {
-        validateSolution(this.result, this.target, count)
+    function(expectedCount) {
+        validateSolution(this.result, this.target, expectedCount)
     })
 
 Then("a solution is found whose value equals {int} and which uses {int} numbers", 
-    function(value, count) {
-        validateSolution(this.result, value, count)
+    function(expectedValue, expectedCount) {
+        validateSolution(this.result, expectedValue, expectedCount)
     })
 
 Then("no solution is found", 
