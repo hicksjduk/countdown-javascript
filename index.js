@@ -18,7 +18,7 @@ function number(num) {
 }
 
 function operator(symbol, evaluator, priority, commutative) {
-    return {symbol, evaluator, priority, commutative}
+    return { symbol, evaluator, priority, commutative }
 }
 
 const Operator = {
@@ -48,24 +48,40 @@ function toString(leftOperand, operator, rightOperand) {
     ].join(" ")
 }
 
-const combiners = [
-    (a, b) => expression(a, Operator.ADD, b),
-    (a, b) => {
-        if (a.value <= b.value || a.value == b.value * 2)
+const combinerCreators = [
+    a => b => expression(a, Operator.ADD, b),
+    a => {
+        if (a.value < 3)
             return null
-        return expression(a, Operator.SUBTRACT, b)
+        return b => {
+            if (a.value <= b.value || a.value == b.value * 2)
+                return null
+            return expression(a, Operator.SUBTRACT, b)
+        }
     },
-    (a, b) => {
-        if (a.value == 1 || b.value == 1)
+    a => {
+        if (a.value == 1)
             return null
-        return expression(a, Operator.MULTIPLY, b)
+        return b => {
+            if (b.value == 1)
+                return null
+            return expression(a, Operator.MULTIPLY, b)
+        }
     },
-    (a, b) => {
-        if (b.value == 1 || (a.value % b.value) || a.value == b.value ** 2)
+    a => {
+        if (a.value == 1)
             return null
-        return expression(a, Operator.DIVIDE, b)
+        return b => {
+            if (b.value == 1 || (a.value % b.value) || a.value == b.value ** 2)
+                return null
+            return expression(a, Operator.DIVIDE, b)
+        }
     }
 ]
+
+function combiners(expr) {
+    return combinerCreators.map(cc => cc(expr)).filter(x => x)
+}
 
 function* permute(arr) {
     if (arr.length == 1)
@@ -101,13 +117,15 @@ function* expressions(permutation) {
     else if (permutation.length) {
         const used = usedChecker(e => e.value)
         for (let i = 1; i < permutation.length; i++)
-            for (const left of expressions(permutation.slice(0, i)))
+            for (const left of expressions(permutation.slice(0, i))) {
+                const combs = combiners(left)
                 for (const right of expressions(permutation.slice(i)))
-                    for (const comb of combiners) {
-                        const expr = comb(left, right)
+                    for (const comb of combs) {
+                        const expr = comb(right)
                         if (expr && !used(expr))
                             yield expr
                     }
+            }
     }
 }
 
@@ -142,4 +160,4 @@ function betterChecker(target) {
     }
 }
 
-module.exports = {solve}
+module.exports = { solve }
