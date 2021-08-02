@@ -2,7 +2,9 @@ const {When, Then, defineParameterType} = require("@cucumber/cucumber")
 const solve = require("../../solver.js")
 const assert = require("assert")
 
-defineParameterType({name: "ints", regexp: /\d+(?:\s*,\s*\d+)*/, 
+defineParameterType({
+    name: "ints", 
+    regexp: /\d+(?:\s*,\s*\d+)*/, 
     transformer: str => str.split(/\D+/).map(i => i * 1)
 })
 
@@ -28,14 +30,17 @@ Then("no solution is found",
         assert(!this.result)
     })
 
-function validateSolution(result, expectedValue, expectedCount, expectedNumbers) {
+function validateSolution(result, expectedValue, expectedCount, sourceNumbers) {
     assert.strictEqual(result.value, expectedValue)
     assert.strictEqual(result.numbers.length, expectedCount)
-    assert(!result.numbers.find(n => {
-        const pos = expectedNumbers.indexOf(n)
-        if (pos == -1)
-            return true
-        expectedNumbers.splice(pos, 1)
-        return false
-    }))
+    const [maxCounts, actualCounts] = 
+        [counts(sourceNumbers), counts(result.numbers)]
+    Object.entries(actualCounts).forEach(
+        ([num, count]) => assert((maxCounts[num] ?? 0) >= count))
+}
+
+function counts(numbers) {
+    const answer = {}
+    numbers.forEach(n => answer[n] = (answer[n] ?? 0) + 1)
+    return answer
 }
