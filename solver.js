@@ -56,11 +56,11 @@ function* expressions(permutation) {
     else if (permutation.length) {
         const used = usedChecker(e => e.value)
         for (let i = 1; i < permutation.length; i++)
-            for (const left of expressions(permutation.slice(0, i))) {
-                const combs = combiners(left)
-                for (const right of expressions(permutation.slice(i)))
-                    for (const comb of combs) {
-                        const expr = comb(right)
+            for (const leftOperand of expressions(permutation.slice(0, i))) {
+                const combiners = combinersUsing(leftOperand)
+                for (const rightOperand of expressions(permutation.slice(i)))
+                    for (const combine of combiners) {
+                        const expr = combine(rightOperand)
                         if (expr && !used(expr))
                             yield expr
                     }
@@ -127,36 +127,18 @@ function toString(leftOperand, operator, rightOperand) {
 
 const combinerCreators = [
     a => b => expression(a, Operator.ADD, b),
-    a => {
-        if (a.value < 3)
-            return null
-        return b => {
-            if (a.value <= b.value || a.value == b.value * 2)
-                return null
-            return expression(a, Operator.SUBTRACT, b)
-        }
-    },
-    a => {
-        if (a.value == 1)
-            return null
-        return b => {
-            if (b.value == 1)
-                return null
-            return expression(a, Operator.MULTIPLY, b)
-        }
-    },
-    a => {
-        if (a.value == 1)
-            return null
-        return b => {
-            if (b.value == 1 || (a.value % b.value) || a.value == b.value ** 2)
-                return null
-            return expression(a, Operator.DIVIDE, b)
-        }
-    }
+    a => a.value < 3 ? null : 
+            b => a.value <= b.value || a.value == b.value * 2 ? null :
+                expression(a, Operator.SUBTRACT, b),
+    a => a.value == 1 ? null :
+            b => b.value == 1 ? null :
+                expression(a, Operator.MULTIPLY, b),
+    a => a.value == 1 ? null :
+            b => (b.value == 1 || (a.value % b.value) || a.value == b.value ** 2) ? null :
+                expression(a, Operator.DIVIDE, b)
 ]
 
-function combiners(expr) {
+function combinersUsing(expr) {
     return combinerCreators.map(cc => cc(expr)).filter(x => x)
 }
 
