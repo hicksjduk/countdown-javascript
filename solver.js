@@ -134,7 +134,7 @@ const combinerCreators = [
             b => b.value == 1 ? null :
                 expression(a, Operator.MULTIPLY, b),
     a => a.value == 1 ? null :
-            b => (b.value == 1 || (a.value % b.value) || a.value == b.value ** 2) ? null :
+            b => b.value == 1 || a.value % b.value || a.value == b.value ** 2 ? null :
                 expression(a, Operator.DIVIDE, b)
 ]
 
