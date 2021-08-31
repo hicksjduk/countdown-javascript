@@ -12,7 +12,7 @@ function solve(target, ...numbers) {
         for (const expr of expressions(permutation)) {
             const best = better(answer, expr)
             if (best !== answer) {
-                log(`${best.string} = ${best.value}`)
+                log(`${best.string()} = ${best.value}`)
                 answer = best
             }
         }
@@ -89,7 +89,7 @@ function number(num) {
     return {
         value: num,
         numbers: [num],
-        string: `${num}`,
+        string: () => `${num}`,
         priority: Priority.ATOMIC
     }
 }
@@ -109,7 +109,7 @@ function expression(leftOperand, operator, rightOperand) {
     return {
         value: operator.evaluator(leftOperand.value, rightOperand.value),
         numbers: [...leftOperand.numbers, ...rightOperand.numbers],
-        string: toString(leftOperand, operator, rightOperand),
+        string: () => toString(leftOperand, operator, rightOperand),
         priority: operator.priority
     }
 }
@@ -119,9 +119,9 @@ function toString(leftOperand, operator, rightOperand) {
     const rightInParens = rightOperand.priority < operator.priority ||
         (rightOperand.priority == operator.priority && !operator.commutative)
     return [
-        leftInParens ? `(${leftOperand.string})` : `${leftOperand.string}`,
+        leftInParens ? `(${leftOperand.string()})` : `${leftOperand.string()}`,
         operator.symbol,
-        rightInParens ? `(${rightOperand.string})` : `${rightOperand.string}`
+        rightInParens ? `(${rightOperand.string()})` : `${rightOperand.string()}`
     ].join(" ")
 }
 
