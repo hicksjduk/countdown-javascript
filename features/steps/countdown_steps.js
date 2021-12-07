@@ -33,14 +33,21 @@ Then("no solution is found",
 function validateSolution(result, expectedValue, expectedCount, sourceNumbers) {
     assert.strictEqual(result.value, expectedValue)
     assert.strictEqual(result.numbers.length, expectedCount)
-    const [maxCounts, actualCounts] = 
-        [counts(sourceNumbers), counts(result.numbers)]
-    Object.entries(actualCounts).forEach(
-        ([num, count]) => assert((maxCounts[num] ?? 0) >= count))
+    result.numbers.forEach(countValidator(sourceNumbers))
 }
 
-function counts(numbers) {
-    const answer = {}
-    numbers.forEach(n => answer[n] = (answer[n] ?? 0) + 1)
-    return answer
+function incrementCount(obj, key) {
+    return obj[key] = (obj.key ?? 0) + 1
+}
+
+function countValidator(values) {
+    const [expected, actual] = [{}, {}]
+    values.forEach(v => incrementCount(expected, v))
+    return v => {
+        const exp = expected[v];
+        assert(exp, `Unexpected value ${v}`)
+        const act = incrementCount(actual, v)
+        assert(act <= exp, 
+            `Expected up to ${exp} occurrence(s) of ${v}, but found at least ${act}`)
+    }
 }
