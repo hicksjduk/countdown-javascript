@@ -40,15 +40,26 @@ function validate(args) {
     return args
 }
 
+function range(start, end, step=1) {
+    answer = []
+    for (let i = start; i <= end; i+= step)
+        answer.push(i)
+    return answer
+}
+
+function selectRandomNumber(nums) {
+    return nums.splice(randomInt(0, nums.length), 1)[0]
+}
+
 function selectRandomNumbers(largeCount) {
     const target = randomInt(100, 1000)
-    const large = [25, 50, 75, 100]
-    const small = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10]
+    const large = range(25, 100, 25)
+    const small = range(1, 10).flatMap(v => [v, v])
     const numbers = []
     while (largeCount--)
-        numbers.push(...large.splice(randomInt(0, large.length), 1))
+        numbers.push(selectRandomNumber(large))
     while (numbers.length < 6)
-        numbers.push(...small.splice(randomInt(0, small.length), 1))
+        numbers.push(selectRandomNumber(small))
     return [target, ...numbers]
 }
 
