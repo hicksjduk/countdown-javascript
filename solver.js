@@ -5,21 +5,36 @@ const log = message => winston.log('info', message)
 function solve(target, ...numbers) {
     log('------------------------------')
     log(`Target: ${target}, numbers: ${numbers.join(", ")}`)
-    const nums = numbers.map(n => number(n))
-    const better = betterChecker(target)
-    let answer = null
-    for (const permutation of permute(nums))
-        for (const expr of expressions(permutation)) {
-            const best = better(answer, expr)
-            if (best !== answer) {
-                log(`${best.string()} = ${best.value}`)
-                answer = best
-            }
-        }
+    const [answer, time] = doTimed(solver(target, numbers))
+    log(`Finished in ${time}ms`)
     if (!answer)
         log("No solution found")
     log('------------------------------')
     return answer
+}
+
+function solver(target, numbers) {
+    return () => {
+        const nums = numbers.map(n => number(n))
+        const better = betterChecker(target)
+        let answer = null
+        for (const permutation of permute(nums))
+            for (const expr of expressions(permutation)) {
+                const best = better(answer, expr)
+                if (best !== answer) {
+                    log(`${best.string()} = ${best.value}`)
+                    answer = best
+                }
+            }
+        return answer
+    }
+}
+
+function doTimed(func) {
+    const start = new Date().getTime()
+    const result = func()
+    const end = new Date().getTime()
+    return [result, end - start]
 }
 
 function* permute(arr) {
