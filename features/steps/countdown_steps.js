@@ -33,21 +33,20 @@ Then("no solution is found",
 function validateSolution(result, expectedValue, expectedCount, sourceNumbers) {
     assert.strictEqual(result.value, expectedValue)
     assert.strictEqual(result.numbers.length, expectedCount)
-    result.numbers.forEach(countValidator(sourceNumbers))
+    assertIsSubsetOf(sourceNumbers)(result.numbers)
 }
 
-function incrementCount(obj, key) {
-    return obj[key] = (obj.key ?? 0) + 1
-}
-
-function countValidator(values) {
-    const [expected, actual] = [{}, {}]
-    values.forEach(v => incrementCount(expected, v))
-    return v => {
-        const exp = expected[v];
-        assert(exp, `Unexpected value ${v}`)
-        const act = incrementCount(actual, v)
-        assert(act <= exp, 
-            `Expected up to ${exp} occurrence(s) of ${v}, but found at least ${act}`)
+function assertIsSubsetOf(superset) {
+    const [expectedCounts, actualCounts] = [{}, {}]
+    const incrementCount = (obj, key) => obj[key] = (obj.key ?? 0) + 1
+    superset.forEach(v => incrementCount(expectedCounts, v))
+    return subset => {
+        subset.forEach(v => {
+            const exp = expectedCounts[v];
+            assert(exp, `Unexpected value ${v}`)
+            const act = incrementCount(actualCounts, v)
+            assert(act <= exp, 
+                `Expected up to ${exp} occurrence(s) of ${v}, but found at least ${act}`)
+        })
     }
 }
