@@ -20,10 +20,9 @@ function solver(target, numbers) {
         let answer = null
         for (const permutation of permute(nums))
             for (const expr of expressions(permutation)) {
-                const best = better(answer, expr)
-                if (best !== answer) {
-                    log(`${best.string()} = ${best.value}`)
-                    answer = best
+                if (better(answer, expr) === expr) {
+                    log(`${expr.string()} = ${expr.value}`)
+                    answer = expr
                 }
             }
         return answer
