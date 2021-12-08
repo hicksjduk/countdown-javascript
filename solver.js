@@ -45,7 +45,7 @@ function* permute(arr) {
             const value = arr[i]
             if (!used(value)) {
                 yield [value]
-                const others = arr.slice(0, i).concat(arr.slice(i + 1))
+                const others = [...arr.slice(0, i), ...arr.slice(i + 1)]
                 for (const perm of permute(others))
                     yield [value, ...perm]
             }
