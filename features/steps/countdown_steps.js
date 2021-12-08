@@ -36,19 +36,21 @@ function validateSolution(result, expectedValue, expectedCount, sourceNumbers) {
     assertIsSubsetOf(sourceNumbers)(result.numbers)
 }
 
-function occurrenceCounter() {
+function occurrenceCounter(initValues) {
     const counts = {}
-    return {
+    const answer = {
         count: v => counts[v] ?? 0,
         increment: v => counts[v] = (counts[v] ?? 0) + 1
     }
+    if (initValues)
+        initValues.forEach(answer.increment)
+    return answer
 }
 
 function assertIsSubsetOf(superset) {
-    const expectedCounts = occurrenceCounter()
-    superset.forEach(expectedCounts.increment)
-    const actualCounts = occurrenceCounter()
+    const expectedCounts = occurrenceCounter(superset)
     return subset => {
+        const actualCounts = occurrenceCounter()
         subset.forEach(v => {
             const exp = expectedCounts.count(v);
             assert(exp, `Unexpected value ${v}`)
