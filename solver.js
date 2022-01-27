@@ -68,14 +68,13 @@ function* expressions(permutation) {
     if (permutation.length == 1)
         yield permutation[0]
     else if (permutation.length) {
-        const used = usedChecker(e => e.value)
         for (let i = 1; i < permutation.length; i++)
             for (const leftOperand of expressions(permutation.slice(0, i))) {
                 const combiners = combinersUsing(leftOperand)
                 for (const rightOperand of expressions(permutation.slice(i)))
                     for (const combine of combiners) {
                         const expr = combine(rightOperand)
-                        if (expr && !used(expr))
+                        if (expr)
                             yield expr
                     }
             }
@@ -89,7 +88,10 @@ function betterChecker(target) {
             return null
         if (diffA != diffB)
             return diffA < diffB ? a : b
-        return a.numbers.length <= b.numbers.length ? a : b
+        const [numsA, numsB] = [a, b].map(x => x.numbers.length)
+        if (numsA != numsB)
+            return numsA < numsB ? a : b
+        return a.parentheses <= b.parentheses ? a : b
     }
 }
 
@@ -103,6 +105,7 @@ function number(num) {
     return {
         value: num,
         numbers: [num],
+        parentheses: 0,
         string: () => `${num}`,
         priority: Priority.ATOMIC
     }
@@ -123,33 +126,42 @@ function expression(leftOperand, operator, rightOperand) {
     return {
         value: operator.evaluator(leftOperand.value, rightOperand.value),
         numbers: [...leftOperand.numbers, ...rightOperand.numbers],
+        parentheses: [parenthesiseLeft(operator, leftOperand), 
+                      parenthesiseRight(operator, rightOperand)].filter(v => v).length
+                      + leftOperand.parentheses + rightOperand.parentheses,
         string: () => toString(leftOperand, operator, rightOperand),
         priority: operator.priority
     }
 }
 
 function toString(leftOperand, operator, rightOperand) {
-    const leftInParens = leftOperand.priority < operator.priority
-    const rightInParens = rightOperand.priority < operator.priority ||
-        (rightOperand.priority == operator.priority && !operator.commutative)
     return [
-        leftInParens ? `(${leftOperand.string()})` : `${leftOperand.string()}`,
+        parenthesiseLeft(operator, leftOperand) ? `(${leftOperand.string()})` : `${leftOperand.string()}`,
         operator.symbol,
-        rightInParens ? `(${rightOperand.string()})` : `${rightOperand.string()}`
+        parenthesiseRight(operator, rightOperand) ? `(${rightOperand.string()})` : `${rightOperand.string()}`
     ].join(" ")
+}
+
+function parenthesiseLeft(operator, leftOperand) {
+    return leftOperand.priority < operator.priority
+}
+
+function parenthesiseRight(operator, rightOperand) {
+    return rightOperand.priority < operator.priority ||
+    (rightOperand.priority == operator.priority && !operator.commutative)
 }
 
 const combinerCreators = [
     a => b => expression(a, Operator.ADD, b),
-    a => a.value < 3 ? null : 
-            b => a.value <= b.value || a.value == b.value * 2 ? null :
-                expression(a, Operator.SUBTRACT, b),
+    a => a.value < 3 ? null :
+        b => a.value <= b.value || a.value == b.value * 2 ? null :
+            expression(a, Operator.SUBTRACT, b),
     a => a.value == 1 ? null :
-            b => b.value == 1 ? null :
-                expression(a, Operator.MULTIPLY, b),
+        b => b.value == 1 ? null :
+            expression(a, Operator.MULTIPLY, b),
     a => a.value == 1 ? null :
-            b => b.value == 1 || a.value % b.value || a.value == b.value ** 2 ? null :
-                expression(a, Operator.DIVIDE, b)
+        b => b.value == 1 || a.value % b.value || a.value == b.value ** 2 ? null :
+            expression(a, Operator.DIVIDE, b)
 ]
 
 function combinersUsing(expr) {
