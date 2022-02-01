@@ -1,3 +1,4 @@
+const { match } = require("assert")
 const winston = require("winston")
 winston.add(new winston.transports.Console())
 const log = message => winston.log('info', message)
@@ -18,12 +19,17 @@ function solver(target, numbers) {
         const nums = numbers.map(n => number(n))
         const better = betterChecker(target)
         let answer = null
+        const difference = differenceFromTarget(target)
+        const differenceInRange = e => difference(e) <= 10
         for (const permutation of permute(nums))
             for (const expr of expressions(permutation)) {
-                if (better(answer, expr) === expr) {
-                    log(`${expr.string()} = ${expr.value}`)
-                    answer = expr
-                }
+                if (!differenceInRange(expr))
+                    continue
+                if (answer) 
+                    if (better(answer, expr) === answer)
+                        continue
+                log(`${expr.string()} = ${expr.value}`)
+                answer = expr
             }
         return answer
     }
@@ -65,7 +71,7 @@ function usedChecker(idGenerator) {
 }
 
 function* expressions(permutation) {
-    if (permutation.length == 1)
+    if (permutation.length == 1) 
         yield permutation[0]
     else if (permutation.length) {
         for (let i = 1; i < permutation.length; i++)
@@ -81,11 +87,14 @@ function* expressions(permutation) {
     }
 }
 
+function differenceFromTarget(target) {
+    return expr => Math.abs(target - expr.value)
+}
+
 function betterChecker(target) {
+    const difference = differenceFromTarget(target)
     return (a, b) => {
-        const [diffA, diffB] = [a, b].map(x => x ? Math.abs(target - x.value) : 1000)
-        if (Math.min(diffA, diffB) > 10)
-            return null
+        const [diffA, diffB] = [a, b].map(x => difference(x))
         if (diffA != diffB)
             return diffA < diffB ? a : b
         const [numsA, numsB] = [a, b].map(x => x.numbers.length)
