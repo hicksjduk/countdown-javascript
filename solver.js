@@ -92,15 +92,15 @@ function differenceFromTarget(target) {
 }
 
 function betterChecker(target) {
-    const difference = differenceFromTarget(target)
+    const fieldExtractors = [differenceFromTarget(target), 
+        e => e.numbers.length, e => e.parentheses]
     return (a, b) => {
-        const [diffA, diffB] = [a, b].map(x => difference(x))
-        if (diffA != diffB)
-            return diffA < diffB ? a : b
-        const [numsA, numsB] = [a, b].map(x => x.numbers.length)
-        if (numsA != numsB)
-            return numsA < numsB ? a : b
-        return a.parentheses <= b.parentheses ? a : b
+        for (let e = 0; e < fieldExtractors.length; e++) {
+            const [valueA, valueB] = [a, b].map(fieldExtractors[e])
+            if (valueA != valueB)
+                return valueA < valueB ? a : b
+        }
+        return a
     }
 }
 
